@@ -1,7 +1,6 @@
 httplib2
 pandas
 datetime
-time
 dj-database-url==0.4.1
 Flask
 Django==1.11
@@ -10,10 +9,6 @@ psycopg2==2.8.1
 whitenoise==3.3.0
 requests==2.9.1
 asyncio 
-telepot
-python-telegram-bot
-telebot
-pyTelegramBotAPI
 matplotlib
 numpy
 Flask-Cors==3.0.8
