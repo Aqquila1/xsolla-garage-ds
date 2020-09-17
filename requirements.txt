@@ -13,6 +13,7 @@ matplotlib
 numpy
 Flask-Cors==3.0.8
 scikit-learn
+sklearn
 nltk
 pymorphy2
 python-dateutil
