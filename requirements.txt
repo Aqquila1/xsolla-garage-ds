@@ -15,5 +15,4 @@ Flask-Cors==3.0.8
 scikit-learn
 nltk
 pymorphy2
-json
 python-dateutil
