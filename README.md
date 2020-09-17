@@ -1,1 +1,1 @@
-# XSOLLA-GARAGE-DS
+# Analytical backend for Xsolla Garage  
