@@ -1,4 +1,15 @@
 # -*- coding: utf-8 -*-
+import pandas as pd
+import string
+import numpy as np
+import collections as co
+
+import sklearn
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.neural_network import MLPClassifier
+
+
 import pickle
 from app import application
 from flask import jsonify
@@ -32,7 +43,7 @@ with open("./models/mlp_model.pkl", 'rb') as file:
 def get_label_id(proba_prediction):
     max_proba = proba_prediction.max()
     label_id = proba_prediction.argmax()
-    proba_threshold = 0.1  # if max predicted probability bigger this value - return label id, otherwise - '-1'
+    proba_threshold = 0.001  # if max predicted probability bigger this value - return label id, otherwise - '-1'
     if (max_proba > proba_threshold):
         return int(label_id)
     else:
@@ -202,6 +213,13 @@ def hello():
 
 @application.route("/date_tags" , methods=['POST'])  
 def date_and_tags():
+    tags_list = ['Зимние виды', 'Мир', 'Coцсети', 'Деньги', 'Футбол', 'Бизнес', 'Музыка',
+                 'Квартира', 'Бокс и ММА', 'Театр', 'Оружие', 'Дача', 'Прибалтика',
+                 'Рынки', 'Звери', 'Техника', 'Интернет', 'Люди', 'Наука', 'Кино',
+                 'ТВ и радио', 'Космос', 'Явления', 'Стиль', 'События', 'Деловой климат',
+                 'Искусство', 'Книги', 'Закавказье', 'Летние виды', 'Пресса', 'Игры',
+                 'Средняя Азия', 'Москва', 'Гаджеты', 'Город']
+    
     
     resp = {"date_target":"yyyy-mm-dd hh:MM:ss"
            ,"tag": "Ukraine",
@@ -219,11 +237,12 @@ def date_and_tags():
 
         # predicting category
         proba_prediction = model.predict_proba(vec.transform([text_content]).toarray())
-        resp["tag"] = get_label_id(proba_prediction)
+        tag_id = get_label_id(proba_prediction)
+        resp["tag"] = tags_list[tag_id]
         
         # date processing
         current_date = json_params['current_date']
-        date_target = date_processing(text_content, current_date)
+        date_target = date_processing(json_params['text_content'], current_date)
         resp['date_target'] = date_target
      
     except Exception as e: 
