@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import pandas as pd
 import string
 import numpy as np
 import collections as co
@@ -12,6 +11,7 @@ from sklearn.neural_network import MLPClassifier
 
 import pickle
 from app import application
+from flask import make_response
 from flask import jsonify
 from flask import request
 import json
@@ -202,6 +202,21 @@ def date_processing(wordString, date_target=datetime.now().strftime("%Y-%m-%d %H
     return date_target        
 
 
+def _build_cors_prelight_response():
+    response = make_response()
+    
+    response.content_type = "application/json"
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Headers", "*")
+    response.headers.add("Access-Control-Allow-Methods", "*")
+    
+    return response
+
+def _corsify_actual_response(response):
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
+
+
 
 @application.route("/", methods=['GET', 'POST'])  
 def hello():
@@ -210,8 +225,7 @@ def hello():
     
     return response
 
-
-@application.route("/date_tags" , methods=['POST'])  
+@application.route("/date_tags" , methods=['POST', 'OPTIONS'])  
 def date_and_tags():
     tags_list = ['Зимние виды', 'Мир', 'Coцсети', 'Деньги', 'Футбол', 'Бизнес', 'Музыка',
                  'Квартира', 'Бокс и ММА', 'Театр', 'Оружие', 'Дача', 'Прибалтика',
@@ -226,29 +240,32 @@ def date_and_tags():
            'message':"ok"
            }
     
-
-    try:
-        getData = request.get_data()
-        json_params = json.loads(getData) 
-        
-        text_content = json_params['text_content']
-        text_content = text_content.lower()
-        text_content = get_lemma(text_content)
-
-        # predicting category
-        proba_prediction = model.predict_proba(vec.transform([text_content]).toarray())
-        tag_id = get_label_id(proba_prediction)
-        resp["tag"] = tags_list[tag_id]
-        
-        # date processing
-        current_date = json_params['current_date']
-        date_target = date_processing(json_params['text_content'], current_date)
-        resp['date_target'] = date_target
-     
-    except Exception as e: 
-        print(e)
-        resp['message'] = e
-      
-    response = jsonify(resp)
+    if request.method == 'OPTIONS':
+        return _build_cors_prelight_response()
     
-    return response
+    else:
+        try:
+            getData = request.get_data()
+            json_params = json.loads(getData) 
+            
+            text_content = json_params['text_content']
+            text_content = text_content.lower()
+            text_content = get_lemma(text_content)
+    
+            # predicting category
+            proba_prediction = model.predict_proba(vec.transform([text_content]).toarray())
+            tag_id = get_label_id(proba_prediction)
+            resp["tag"] = tags_list[tag_id]
+            
+            # date processing
+            current_date = json_params['current_date']
+            date_target = date_processing(json_params['text_content'], current_date)
+            resp['date_target'] = date_target
+         
+        except Exception as e: 
+            print(e)
+            resp['message'] = e
+          
+        response = jsonify(resp)
+        
+        return _corsify_actual_response(response)
