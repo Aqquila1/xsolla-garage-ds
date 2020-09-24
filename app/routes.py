@@ -39,7 +39,7 @@ def get_tag(prediction):
     proba = prediction[1][0]
     tag = tag.replace('__label__', '')
     tag = list(filter(None, re.split('\W|\d', tag)))
-    return tag[0] if (proba > 0.6) else -1
+    return tag[0] if (proba > 0.6) else ""
 
 
 def lemmatize_list_of_words(list_of_words):
@@ -262,7 +262,7 @@ def date_and_tags():
 
             # date processing
             current_date = json_params['current_date']
-            date_target = date_processing(json_params['text_content'], current_date)
+            date_target = date_processing(json_params['text_content'])#, current_date)
             resp['date_target'] = date_target
 
         except Exception as e:
