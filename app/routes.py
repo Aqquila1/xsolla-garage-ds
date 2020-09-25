@@ -39,7 +39,7 @@ def get_tag(prediction):
     proba = prediction[1][0]
     tag = tag.replace('__label__', '')
     tag = list(filter(None, re.split('\W|\d', tag)))
-    return tag[0] if (proba > 0.6) else ""
+    return tag[0] #if (proba > 0.6) else ""
 
 
 def lemmatize_list_of_words(list_of_words):
@@ -212,6 +212,33 @@ def date_processing(wordString, date_target=datetime.now().strftime("%Y-%m-%d %H
     return date_target
 
 
+#function for title creating
+def title_creating(text, n_words=2, part_speech=['NOUN', 'VERB', "INFN"]):
+    text = text.lower()
+    if text=="":
+        return "Твоя пустая заметка"
+    words = tokenizer.tokenize(re.sub('[-\’,·”–●•№~✅“=#—«"‚»|.?!:;()*^&%+/]', ' ' , text))
+    title_words = []
+    curr_n_words = 0
+
+    try:
+        for word in words:
+            if str(pymorph.parse(word)[0].tag).split(',')[0] in part_speech or word=='не':
+                title_words.append(word)
+                curr_n_words+=1
+                if curr_n_words == n_words:
+                    break
+        result = " ".join([word for word in title_words])
+        result = result[0].upper() + result[1:]
+        return result 
+    
+    except IndexError:
+        result = " ".join([word for word in words[:3]])
+        result = result[0].upper() + result[1:]
+        return result
+    
+
+
 def _build_cors_prelight_response():
     response = make_response()
 
@@ -240,6 +267,7 @@ def hello():
 def date_and_tags():
     resp = {'date_target': 'yyyy-mm-dd hh:MM:ss',
             'tag': -1,
+            'title':'',
             'message': 'ok'
             }
 
@@ -264,6 +292,9 @@ def date_and_tags():
             current_date = json_params['current_date']
             date_target = date_processing(json_params['text_content'])#, current_date)
             resp['date_target'] = date_target
+            
+            #title creating
+            resp['title'] = title_creating(json_params['text_content'])
 
         except Exception as e:
             print(e)
