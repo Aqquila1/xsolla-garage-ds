@@ -32,6 +32,7 @@ def my_lemming(word):
 
 # loading models
 model = fasttext.load_model('models/fasttext_fulldata.ftz')
+model_importance = fasttext.load_model('models/fasttext_importance.ftz')
 
 
 def get_tag(prediction):
@@ -39,7 +40,8 @@ def get_tag(prediction):
     proba = prediction[1][0]
     tag = tag.replace('__label__', '')
     tag = list(filter(None, re.split('\W|\d', tag)))
-    return tag[0] #if (proba > 0.6) else ""
+    print(proba)
+    return tag[0]
 
 
 def lemmatize_list_of_words(list_of_words):
@@ -72,6 +74,28 @@ def get_lemma(text):
     lemma = ' '.join(lemma_list)
     return lemma
 
+
+#function for target date checking
+def correct_checking(current_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), date_target="2021-02-45 19:00:00"):
+
+  months = {'01':[1,31],'02':[1,29],'03':[1,31],'04':[1,30],'05':[1,31],'06':[1,30],'07':[1,31],
+                      '08':[1,31],'09':[1,30],'10':[1,31],'11':[1,30], '12':[1,31]}
+  
+  target_month = date_target[5:7]
+
+  if int(date_target[8:10])>months[target_month][1]:
+      date_target = date_target[:8] + str(months[target_month][1]) + date_target[10:] 
+
+  try:
+      delta = datetime(int(date_target[:4]), int(date_target[5:7]), int(date_target[8:10])) - datetime(int(current_date[:4]), int(current_date[5:7]), int(current_date[8:10]))
+      #print(delta)
+      if delta<timedelta(0):
+        date_target = datetime(int(date_target[:4]), int(date_target[5:7]), int(date_target[8:10])) + relativedelta(years=1)
+        date_target = date_target.strftime("%Y-%m-%d %H:%M:%S")
+  except ValueError:
+      date_target =  date_target[:8] + "28" +  date_target[10:] 
+      
+  return date_target
 
 def date_processing(wordString, current_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")):
 
@@ -325,8 +349,9 @@ def correct_checking(current_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
       
   return date_target
 
+       
 
-#function for title creating
+#function for title creating via parsing text_content
 def title_creating(text, n_words=2, part_speech=['NOUN', 'VERB', "INFN"]):
     text = text.lower()
     if text=="":
@@ -351,6 +376,28 @@ def title_creating(text, n_words=2, part_speech=['NOUN', 'VERB', "INFN"]):
         result = result[0].upper() + result[1:]
         return result
     
+
+def note_importance(text):
+    text = text.lower()
+    words = tokenizer.tokenize(re.sub('[-\’,·”–●•№~✅“=#—«"‚»|.?!:;()*^&%+/]', ' ' , text))
+    words = [my_lemming(word) for word in words]
+    
+    if text == '':
+      return 0
+
+    complex_words =  ['стоит', 'хочу', 'думаю', 'не забыть', 'до завтра']
+    important_words = ['важно', 'необходимый', 'задача', 'нужно','сессия', 'курсач', 'курсовая', 'срочно', 'обязательно', 'капец', 'исключительно', 'срок', 'гореть', 'дедлайна' , 'критично' ,'отчет']
+
+    for key_word in complex_words:
+      if key_word in text:
+            return 1
+    
+    for imp_word in important_words:
+        if imp_word in words:
+            return 1
+    
+    return 0
+
 
 
 def _build_cors_prelight_response():
@@ -382,6 +429,7 @@ def date_and_tags():
     resp = {'date_target': 'yyyy-mm-dd hh:MM:ss',
             'tag': -1,
             'title':'',
+            'importance':'0',
             'message': 'ok'
             }
 
@@ -407,8 +455,15 @@ def date_and_tags():
             date_target = date_processing(json_params['text_content'])#, current_date)
             resp['date_target'] = date_target
             
-            #title creating
+            # title creating
             resp['title'] = title_creating(json_params['text_content'])
+            
+            #importance defifning
+            pred_important = model_importance.predict(text_content, k=1)
+            if pred_important[1][0]<0.6:
+                resp['importance'] = str(note_importance(json_params['text_content']))
+            else:
+                resp['importance'] = pred_importance[0][0][-1]
 
         except Exception as e:
             print(e)
